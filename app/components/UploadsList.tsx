@@ -109,7 +109,7 @@ export default function UploadsList() {
               </strong>
               <span className="muted">{formatSize(item.size)}</span>
             </div>
-            {item.contentType?.startsWith("image/") && (
+            {item.contentType?.startsWith("image/") && item.kind !== "chunked" && (
               <div
                 style={{
                   borderRadius: "12px",
@@ -126,18 +126,22 @@ export default function UploadsList() {
                 />
               </div>
             )}
+            {item.kind === "chunked" && (
+              <p className="muted" style={{ marginTop: 0 }}>
+                Chunked upload (download streams and stitches automatically).
+              </p>
+            )}
             <div className="stack">
               <code style={{ background: "rgba(255,255,255,0.04)", padding: "6px", borderRadius: "8px" }}>
-                {item.url}
+                {item.kind === "chunked" && item.downloadUrl ? item.downloadUrl : item.url}
               </code>
-              {item.kind === "chunked" && item.downloadUrl ? (
+              <Link className="btn btn--ghost" href={`/files/${encodeURIComponent(item.name)}`}>
+                Open details
+              </Link>
+              {item.kind === "chunked" && item.downloadUrl && (
                 <a className="btn btn--primary" href={item.downloadUrl} rel="noreferrer">
                   Download chunked file
                 </a>
-              ) : (
-                <Link className="btn btn--ghost" href={`/files/${encodeURIComponent(item.name)}`}>
-                  Open details
-                </Link>
               )}
             </div>
             {item.uploadedAt && <p className="muted">Uploaded: {new Date(item.uploadedAt).toLocaleString()}</p>}

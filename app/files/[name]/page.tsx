@@ -7,6 +7,9 @@ type Upload = {
   size: number | null;
   uploadedAt: string | null;
   contentType: string | null;
+  kind?: "regular" | "chunked";
+  downloadUrl?: string;
+  fileId?: string;
 };
 
 type PreviewKind = "image" | "video" | "audio" | "pdf" | "text" | "none";
@@ -27,6 +30,7 @@ async function fetchFile(name: string): Promise<Upload | null> {
 }
 
 function detectPreviewKind(file: Upload): PreviewKind {
+  if (file.kind === "chunked") return "none";
   const ct = file.contentType?.toLowerCase() || "";
   const name = file.name.toLowerCase();
   if (ct.startsWith("image/")) return "image";
@@ -77,6 +81,7 @@ export default async function FilePage({ params }: { params: { name: string } })
   const previewKind = detectPreviewKind(file);
   const textContent = previewKind === "text" ? await maybeLoadText(file.url, file) : null;
   const storageKey = `comments:${file.name}`;
+  const downloadHref = file.kind === "chunked" && file.downloadUrl ? file.downloadUrl : file.url;
 
   return (
     <main>
@@ -89,9 +94,10 @@ export default async function FilePage({ params }: { params: { name: string } })
                 <p className="muted">
                   {file.size ? `${(file.size / 1024).toFixed(1)} KB` : "Size unknown"} •{" "}
                   {file.contentType ?? "unknown type"}
+                  {file.kind === "chunked" ? " • chunked upload" : ""}
                 </p>
               </div>
-              <a className="btn btn--ghost" href={file.url} target="_blank" rel="noreferrer">
+              <a className="btn btn--ghost" href={downloadHref} target="_blank" rel="noreferrer">
                 Open original
               </a>
             </div>
@@ -162,13 +168,16 @@ export default async function FilePage({ params }: { params: { name: string } })
 
             <div className="stack" style={{ marginTop: "10px" }}>
               <code style={{ background: "rgba(255,255,255,0.04)", padding: "8px", borderRadius: "10px" }}>
-                {file.url}
+                {downloadHref}
               </code>
-              <a className="btn btn--primary" href={file.url} target="_blank" rel="noreferrer">
+              <a className="btn btn--primary" href={downloadHref} target="_blank" rel="noreferrer">
                 View / download
               </a>
             </div>
             {file.uploadedAt && <p className="muted">Uploaded: {new Date(file.uploadedAt).toLocaleString()}</p>}
+            {file.kind === "chunked" && (
+              <p className="muted">This file is chunked; download streams and stitches automatically.</p>
+            )}
           </div>
         </section>
 

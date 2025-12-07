@@ -1,6 +1,5 @@
 import ArchiveUploader from "./components/ArchiveUploader";
 import UploadsList from "./components/UploadsList";
-import ChunkUploader from "./components/ChunkUploader";
 
 const policies = [
   {
@@ -89,9 +88,6 @@ export default function Home() {
           <UploadsList />
         </section>
 
-        <section className="section" id="chunk-uploader">
-          <ChunkUploader />
-        </section>
 
         <section className="section">
           <div className="section__header">
