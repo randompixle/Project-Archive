@@ -95,7 +95,13 @@ export async function GET(request: Request) {
     const blobList = await list({ prefix, token });
     let files =
       blobList.blobs
-        ?.filter((blob: any) => blob.pathname && !blob.pathname.endsWith("manifest.json") && !blob.pathname.includes("chunk-"))
+        ?.filter(
+          (blob: any) =>
+            blob.pathname &&
+            !blob.pathname.endsWith("manifest.json") &&
+            !blob.pathname.includes("chunk-") &&
+            !blob.pathname.includes("chunks/")
+        )
         ?.map((blob: any) => ({
           name: blob.pathname?.split("/").pop() ?? blob.pathname ?? "file",
           url: blob.url,

@@ -1,5 +1,6 @@
 import ArchiveUploader from "./components/ArchiveUploader";
 import UploadsList from "./components/UploadsList";
+import PurgeAllCard from "./components/PurgeAllCard";
 
 const policies = [
   {
@@ -86,6 +87,10 @@ export default function Home() {
 
         <section className="section" id="uploads-list">
           <UploadsList />
+        </section>
+
+        <section className="section" id="danger-zone">
+          <PurgeAllCard />
         </section>
 
 
