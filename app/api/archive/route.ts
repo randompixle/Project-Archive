@@ -1,7 +1,7 @@
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, readdir, stat, writeFile } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
+import { list, put } from "@vercel/blob";
 
 export const runtime = "nodejs";
 
@@ -53,4 +53,52 @@ export async function POST(request: Request) {
     bytes: buffer.length,
     location: "local"
   });
+}
+
+export async function GET() {
+  // Prefer Blob listing in production.
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blobList = await list({ prefix: "uploads/" });
+    const files =
+      blobList.blobs?.map((blob: any) => ({
+        name: blob.pathname?.split("/").pop() ?? blob.pathname ?? "file",
+        url: blob.url,
+        size: blob.size ?? null,
+        uploadedAt: blob.uploadedAt ?? null,
+        contentType: blob.contentType ?? null
+      })) ?? [];
+
+    return NextResponse.json({ source: "vercel-blob", files });
+  }
+
+  if (process.env.VERCEL) {
+    return NextResponse.json(
+      {
+        error: "BLOB_READ_WRITE_TOKEN not set. Add a Blob store in Vercel and set the token to list uploads."
+      },
+      { status: 400 }
+    );
+  }
+
+  // Local listing from ./archives.
+  const archiveDir = path.join(process.cwd(), "archives");
+  try {
+    const entries = await readdir(archiveDir);
+    const files = await Promise.all(
+      entries.map(async (entry) => {
+        const entryPath = path.join(archiveDir, entry);
+        const info = await stat(entryPath);
+        return {
+          name: entry,
+          url: `archives/${entry}`,
+          size: info.size,
+          uploadedAt: info.mtime.toISOString(),
+          contentType: null
+        };
+      })
+    );
+    return NextResponse.json({ source: "local", files });
+  } catch {
+    return NextResponse.json({ source: "local", files: [] });
+  }
 }

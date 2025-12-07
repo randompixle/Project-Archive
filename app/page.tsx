@@ -1,4 +1,5 @@
 import ArchiveUploader from "./components/ArchiveUploader";
+import UploadsList from "./components/UploadsList";
 
 const policies = [
   {
@@ -83,13 +84,17 @@ export default function Home() {
           <ArchiveUploader />
         </section>
 
+        <section className="section" id="uploads-list">
+          <UploadsList />
+        </section>
+
         <section className="section">
           <div className="section__header">
             <div>
               <p className="section__title">Why this works</p>
               <p className="muted">Blob in prod for public links, local fallback for tinkering.</p>
             </div>
-            <div className="pill pill--accent">No-frills</div>
+            <div className="pill pill--accent">No frills</div>
           </div>
           <div className="grid grid--three">
             {policies.map((policy) => (
