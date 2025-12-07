@@ -1,4 +1,5 @@
 import FileComments from "../../components/FileComments";
+import { headers } from "next/headers";
 
 type Upload = {
   name: string;
@@ -9,9 +10,13 @@ type Upload = {
 };
 
 async function fetchFile(name: string): Promise<Upload | null> {
+  const host = headers().get("host");
+  const protocol = host && host.startsWith("localhost") ? "http" : "https";
   const base =
+    (host ? `${protocol}://${host}` : null) ||
     process.env.NEXT_PUBLIC_BASE_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
   const res = await fetch(`${base}/api/archive?name=${encodeURIComponent(name)}`, { cache: "no-store" });
   if (!res.ok) return null;
   const body = await res.json();
