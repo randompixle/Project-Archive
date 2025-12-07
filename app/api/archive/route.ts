@@ -94,13 +94,55 @@ export async function GET(request: Request) {
   if (token) {
     const blobList = await list({ prefix, token });
     let files =
-      blobList.blobs?.map((blob: any) => ({
-        name: blob.pathname?.split("/").pop() ?? blob.pathname ?? "file",
-        url: blob.url,
-        size: blob.size ?? null,
-        uploadedAt: blob.uploadedAt ?? null,
-        contentType: blob.contentType ?? null
-      })) ?? [];
+      blobList.blobs
+        ?.filter((blob: any) => blob.pathname && !blob.pathname.endsWith("manifest.json") && !blob.pathname.includes("chunk-"))
+        ?.map((blob: any) => ({
+          name: blob.pathname?.split("/").pop() ?? blob.pathname ?? "file",
+          url: blob.url,
+          size: blob.size ?? null,
+          uploadedAt: blob.uploadedAt ?? null,
+          contentType: blob.contentType ?? null,
+          kind: "regular"
+        })) ?? [];
+
+    // Also include manifests for chunked uploads as entries.
+    const chunkPrefix = `chunks/${store}/`;
+    const chunkList = await list({ prefix: chunkPrefix, token });
+    const manifestBlobs =
+      chunkList.blobs?.filter((blob: any) => blob.pathname?.endsWith("manifest.json")) ?? [];
+
+    const manifests = await Promise.all(
+      manifestBlobs.map(async (blob: any) => {
+        const fileId = blob.pathname?.split("/").slice(-2, -1)[0] ?? "chunked-file";
+        let originalName = fileId;
+        let totalSize = blob.size ?? null;
+        let contentType = "application/json";
+        try {
+          const res = await fetch(blob.url, { cache: "no-store" });
+          if (res.ok) {
+            const manifestJson = await res.json();
+            originalName = manifestJson.originalName || originalName;
+            totalSize = manifestJson.totalSize ?? totalSize;
+            contentType = manifestJson.contentType || contentType;
+          }
+        } catch {
+          // ignore manifest fetch errors; fallback to defaults
+        }
+
+        return {
+          name: originalName,
+          url: blob.url,
+          size: totalSize,
+          uploadedAt: blob.uploadedAt ?? null,
+          contentType,
+          kind: "chunked",
+          fileId,
+          downloadUrl: `/api/download?id=${encodeURIComponent(fileId)}&store=${store}`
+        };
+      })
+    );
+
+    files = [...files, ...manifests];
 
     if (filterName) {
       let filtered = files.filter((f) => f.name === filterName);

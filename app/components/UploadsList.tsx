@@ -9,6 +9,9 @@ type Upload = {
   size: number | null;
   uploadedAt: string | null;
   contentType: string | null;
+  kind?: "regular" | "chunked";
+  fileId?: string;
+  downloadUrl?: string;
 };
 
 export default function UploadsList() {
@@ -47,6 +50,7 @@ export default function UploadsList() {
   };
 
   const iconFor = (item: Upload) => {
+    if (item.kind === "chunked") return "🧩";
     const name = item.name.toLowerCase();
     if (name.match(/\.(png|jpg|jpeg|gif|webp|svg)$/)) return "🖼️";
     if (name.match(/\.(zip|tar|gz|rar)$/)) return "🗂️";
@@ -126,9 +130,15 @@ export default function UploadsList() {
               <code style={{ background: "rgba(255,255,255,0.04)", padding: "6px", borderRadius: "8px" }}>
                 {item.url}
               </code>
-              <Link className="btn btn--ghost" href={`/files/${encodeURIComponent(item.name)}`}>
-                Open details
-              </Link>
+              {item.kind === "chunked" && item.downloadUrl ? (
+                <a className="btn btn--primary" href={item.downloadUrl} rel="noreferrer">
+                  Download chunked file
+                </a>
+              ) : (
+                <Link className="btn btn--ghost" href={`/files/${encodeURIComponent(item.name)}`}>
+                  Open details
+                </Link>
+              )}
             </div>
             {item.uploadedAt && <p className="muted">Uploaded: {new Date(item.uploadedAt).toLocaleString()}</p>}
           </div>
