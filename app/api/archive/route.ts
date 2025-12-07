@@ -70,6 +70,26 @@ export async function GET(request: Request) {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   const prefix = `uploads/${store}/`;
 
+  const matchesName = (fileName: string, target: string) => {
+    if (fileName === target) return true;
+    const stripSuffix = (name: string) => {
+      const dot = name.lastIndexOf(".");
+      const ext = dot >= 0 ? name.slice(dot) : "";
+      const base = dot >= 0 ? name.slice(0, dot) : name;
+      const lastDash = base.lastIndexOf("-");
+      if (lastDash === -1) return { base, ext };
+      const suffix = base.slice(lastDash + 1);
+      if (suffix.length >= 6) {
+        return { base: base.slice(0, lastDash), ext };
+      }
+      return { base, ext };
+    };
+
+    const a = stripSuffix(fileName);
+    const b = stripSuffix(target);
+    return a.base === b.base && a.ext === b.ext;
+  };
+
   // Prefer Blob listing in production.
   if (token) {
     const blobList = await list({ prefix, token });
@@ -83,7 +103,11 @@ export async function GET(request: Request) {
       })) ?? [];
 
     if (filterName) {
-      files = files.filter((f) => f.name === filterName);
+      let filtered = files.filter((f) => f.name === filterName);
+      if (filtered.length === 0) {
+        filtered = files.filter((f) => matchesName(f.name, filterName));
+      }
+      files = filtered;
     }
 
     return NextResponse.json({ source: "vercel-blob", store, files });
@@ -116,7 +140,11 @@ export async function GET(request: Request) {
       })
     );
     if (filterName) {
-      files = files.filter((f) => f.name === filterName);
+      let filtered = files.filter((f) => f.name === filterName);
+      if (filtered.length === 0) {
+        filtered = files.filter((f) => matchesName(f.name, filterName));
+      }
+      files = filtered;
     }
     return NextResponse.json({ source: "local", store, files });
   } catch {
