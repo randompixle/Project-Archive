@@ -1,4 +1,4 @@
-import FileComments from "@/app/components/FileComments";
+import FileComments from "../../components/FileComments";
 
 type Upload = {
   name: string;
