@@ -9,6 +9,8 @@ type Upload = {
   contentType: string | null;
 };
 
+type PreviewKind = "image" | "video" | "audio" | "pdf" | "text" | "none";
+
 async function fetchFile(name: string): Promise<Upload | null> {
   const host = headers().get("host");
   const protocol = host && host.startsWith("localhost") ? "http" : "https";
@@ -22,6 +24,37 @@ async function fetchFile(name: string): Promise<Upload | null> {
   const body = await res.json();
   const file = (body.files as Upload[] | undefined)?.[0];
   return file ?? null;
+}
+
+function detectPreviewKind(file: Upload): PreviewKind {
+  const ct = file.contentType?.toLowerCase() || "";
+  const name = file.name.toLowerCase();
+  if (ct.startsWith("image/")) return "image";
+  if (ct.startsWith("video/")) return "video";
+  if (ct.startsWith("audio/")) return "audio";
+  if (ct === "application/pdf" || name.endsWith(".pdf")) return "pdf";
+  if (
+    ct.startsWith("text/") ||
+    name.endsWith(".txt") ||
+    name.endsWith(".log") ||
+    name.endsWith(".md") ||
+    name.endsWith(".json")
+  ) {
+    return "text";
+  }
+  return "none";
+}
+
+async function maybeLoadText(url: string, file: Upload): Promise<string | null> {
+  const maxBytes = 150_000; // ~150 KB for inline preview to avoid huge loads
+  if (file.size && file.size > maxBytes) return null;
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    return await res.text();
+  } catch {
+    return null;
+  }
 }
 
 export default async function FilePage({ params }: { params: { name: string } }) {
@@ -41,7 +74,8 @@ export default async function FilePage({ params }: { params: { name: string } })
     );
   }
 
-  const isImage = file.contentType?.startsWith("image/");
+  const previewKind = detectPreviewKind(file);
+  const textContent = previewKind === "text" ? await maybeLoadText(file.url, file) : null;
   const storageKey = `comments:${file.name}`;
 
   return (
@@ -62,7 +96,7 @@ export default async function FilePage({ params }: { params: { name: string } })
               </a>
             </div>
 
-            {isImage && (
+            {previewKind === "image" && (
               <div
                 style={{
                   borderRadius: "16px",
@@ -77,6 +111,52 @@ export default async function FilePage({ params }: { params: { name: string } })
                   alt={file.name}
                   style={{ width: "100%", maxHeight: "420px", objectFit: "contain", display: "block" }}
                 />
+              </div>
+            )}
+            {previewKind === "video" && (
+              <div style={{ marginBottom: "12px" }}>
+                <video
+                  controls
+                  src={file.url}
+                  style={{ width: "100%", borderRadius: "12px", border: "1px solid var(--border)" }}
+                />
+              </div>
+            )}
+            {previewKind === "audio" && (
+              <div style={{ marginBottom: "12px" }}>
+                <audio controls src={file.url} style={{ width: "100%" }} />
+              </div>
+            )}
+            {previewKind === "pdf" && (
+              <div
+                style={{
+                  borderRadius: "12px",
+                  overflow: "hidden",
+                  border: "1px solid var(--border)",
+                  marginBottom: "12px",
+                  background: "rgba(255,255,255,0.02)"
+                }}
+              >
+                <object data={file.url} type="application/pdf" width="100%" height="480">
+                  <a className="btn btn--ghost" href={file.url} target="_blank" rel="noreferrer">
+                    Open PDF
+                  </a>
+                </object>
+              </div>
+            )}
+            {previewKind === "text" && (
+              <div
+                className="card"
+                style={{
+                  background: "var(--panel-2)",
+                  border: "1px solid var(--border)",
+                  marginBottom: "12px",
+                  overflow: "auto"
+                }}
+              >
+                <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: "monospace", color: "var(--text)" }}>
+                  {textContent ?? "Preview unavailable (file too large or blocked)."}
+                </pre>
               </div>
             )}
 
