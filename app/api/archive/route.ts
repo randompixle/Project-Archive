@@ -30,6 +30,16 @@ export async function POST(request: Request) {
     });
   }
 
+  // On Vercel without a Blob token, skip local writes (ephemeral FS) and prompt for setup.
+  if (process.env.VERCEL) {
+    return NextResponse.json(
+      {
+        error: "BLOB_READ_WRITE_TOKEN not set. Add a Blob store in Vercel and set the token."
+      },
+      { status: 400 }
+    );
+  }
+
   // Local dev fallback writes to ./archives.
   const buffer = Buffer.from(await file.arrayBuffer());
   const archiveDir = path.join(process.cwd(), "archives");

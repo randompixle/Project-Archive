@@ -34,10 +34,10 @@ export default function Home() {
               prod; saved locally in dev.
             </p>
             <div className="hero__actions">
-              <button className="btn btn--primary">
+              <a className="btn btn--primary" href="#uploader">
                 Start sharing
                 <span className="btn__badge">public</span>
-              </button>
+              </a>
               <a
                 className="btn btn--ghost"
                 href="https://vercel.com/docs/storage/vercel-blob"
@@ -79,7 +79,7 @@ export default function Home() {
           </aside>
         </section>
 
-        <section className="section">
+        <section className="section" id="uploader">
           <ArchiveUploader />
         </section>
 
@@ -116,7 +116,7 @@ export default function Home() {
             <a className="pill" href="https://vercel.com/docs/storage/vercel-blob" target="_blank" rel="noreferrer">
               Blob docs
             </a>
-            <a className="pill pill--accent" href="#">
+            <a className="pill pill--accent" href="#uploader">
               Start uploading
             </a>
           </div>
