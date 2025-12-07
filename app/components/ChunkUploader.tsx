@@ -4,8 +4,8 @@ import { useState } from "react";
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 
-// Keep chunks small to fit Vercel function payload limits.
-const CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB
+// Keep chunks small to fit Vercel function payload limits (reduce if you hit 413s).
+const CHUNK_SIZE = 2 * 1024 * 1024; // ~2 MB
 
 export default function ChunkUploader() {
   const [file, setFile] = useState<File | null>(null);
@@ -80,7 +80,7 @@ export default function ChunkUploader() {
         <div>
           <p className="section__title">Large file uploader (chunked)</p>
           <p className="muted">
-            Splits files into 25 MB chunks, stores them on Blob, and provides a stitched download link.
+            Splits files into ~2 MB chunks, stores them on Blob, and provides a stitched download link.
           </p>
         </div>
         <span className="pill">{state === "uploading" ? `Uploading ${progress}%` : "Blob chunks"}</span>
@@ -89,7 +89,7 @@ export default function ChunkUploader() {
       <form onSubmit={handleUpload} className="grid grid--two">
         <label className="card" style={{ borderStyle: "dashed", cursor: "pointer" }}>
           <strong>Select a large file</strong>
-          <p className="muted">We will split it into 25 MB pieces automatically.</p>
+          <p className="muted">We will split it into ~2 MB pieces automatically.</p>
           <input
             type="file"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
