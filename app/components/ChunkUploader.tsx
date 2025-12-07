@@ -4,7 +4,8 @@ import { useState } from "react";
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 
-const CHUNK_SIZE = 25 * 1024 * 1024; // 25 MB
+// Keep chunks small to fit Vercel function payload limits.
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export default function ChunkUploader() {
   const [file, setFile] = useState<File | null>(null);
