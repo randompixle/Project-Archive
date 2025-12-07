@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 type Upload = {
@@ -99,7 +100,9 @@ export default function UploadsList() {
           <div className="card" key={item.url} style={{ background: "var(--panel-2)" }}>
             <div className="stack" style={{ alignItems: "center", marginBottom: "8px" }}>
               <span style={{ fontSize: "22px" }}>{iconFor(item)}</span>
-              <strong>{item.name}</strong>
+              <strong>
+                <Link href={`/files/${encodeURIComponent(item.name)}`}>{item.name}</Link>
+              </strong>
               <span className="muted">{formatSize(item.size)}</span>
             </div>
             {item.contentType?.startsWith("image/") && (
@@ -123,9 +126,9 @@ export default function UploadsList() {
               <code style={{ background: "rgba(255,255,255,0.04)", padding: "6px", borderRadius: "8px" }}>
                 {item.url}
               </code>
-              <a className="btn btn--ghost" href={item.url} target="_blank" rel="noreferrer">
-                Open
-              </a>
+              <Link className="btn btn--ghost" href={`/files/${encodeURIComponent(item.name)}`}>
+                Open details
+              </Link>
             </div>
             {item.uploadedAt && <p className="muted">Uploaded: {new Date(item.uploadedAt).toLocaleString()}</p>}
           </div>

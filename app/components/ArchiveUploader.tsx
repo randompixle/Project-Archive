@@ -64,8 +64,7 @@ export default function ArchiveUploader() {
           <p className="section__title">Upload & share</p>
           <p className="muted">
             On Vercel, files land in Blob (public link). In dev, they stash to <code>archives/</code>.
-            If Blob isn&apos;t configured on Vercel, set <code>BLOB_READ_WRITE_TOKEN</code> in project
-            settings.
+            Set <code>BLOB_READ_WRITE_TOKEN</code> to enable uploads on Vercel.
           </p>
         </div>
         <span className="pill">{state === "uploading" ? "Uploading..." : "Blob or local"}</span>

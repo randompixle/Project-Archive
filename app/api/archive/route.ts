@@ -13,20 +13,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const storeParam = searchParams.get("store");
+  const store = storeParam === "pages" ? "pages" : "files";
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+
   const originalName =
     typeof (file as any).name === "string" ? (file as any).name : "upload.bin";
   const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, "_");
   const fileName = `${Date.now()}-${safeName}`;
-  const targetPath = `uploads/${fileName}`;
+  const targetPath = `uploads/${store}/${fileName}`;
 
   // Prefer Vercel Blob when token is available (Vercel deploys).
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const result = await put(targetPath, file, { access: "public" });
+  if (token) {
+    const result = await put(targetPath, file, { access: "public", token });
     return NextResponse.json({
       fileName,
       storedAt: result.url,
       bytes: typeof file.size === "number" ? file.size : undefined,
-      location: "vercel-blob"
+      location: "vercel-blob",
+      store
     });
   }
 
@@ -34,7 +40,7 @@ export async function POST(request: Request) {
   if (process.env.VERCEL) {
     return NextResponse.json(
       {
-        error: "BLOB_READ_WRITE_TOKEN not set. Add a Blob store in Vercel and set the token."
+        error: "BLOB_READ_WRITE_TOKEN not set. Add a Blob store and set BLOB_READ_WRITE_TOKEN."
       },
       { status: 400 }
     );
@@ -51,15 +57,23 @@ export async function POST(request: Request) {
     fileName,
     storedAt: `archives/${fileName}`,
     bytes: buffer.length,
-    location: "local"
+    location: "local",
+    store
   });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const filterName = searchParams.get("name");
+  const storeParam = searchParams.get("store");
+  const store = storeParam === "pages" ? "pages" : "files";
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  const prefix = `uploads/${store}/`;
+
   // Prefer Blob listing in production.
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const blobList = await list({ prefix: "uploads/" });
-    const files =
+  if (token) {
+    const blobList = await list({ prefix, token });
+    let files =
       blobList.blobs?.map((blob: any) => ({
         name: blob.pathname?.split("/").pop() ?? blob.pathname ?? "file",
         url: blob.url,
@@ -68,13 +82,17 @@ export async function GET() {
         contentType: blob.contentType ?? null
       })) ?? [];
 
-    return NextResponse.json({ source: "vercel-blob", files });
+    if (filterName) {
+      files = files.filter((f) => f.name === filterName);
+    }
+
+    return NextResponse.json({ source: "vercel-blob", store, files });
   }
 
   if (process.env.VERCEL) {
     return NextResponse.json(
       {
-        error: "BLOB_READ_WRITE_TOKEN not set. Add a Blob store in Vercel and set the token to list uploads."
+        error: "BLOB_READ_WRITE_TOKEN not set. Add a Blob store and set BLOB_READ_WRITE_TOKEN."
       },
       { status: 400 }
     );
@@ -84,7 +102,7 @@ export async function GET() {
   const archiveDir = path.join(process.cwd(), "archives");
   try {
     const entries = await readdir(archiveDir);
-    const files = await Promise.all(
+    let files = await Promise.all(
       entries.map(async (entry) => {
         const entryPath = path.join(archiveDir, entry);
         const info = await stat(entryPath);
@@ -97,8 +115,11 @@ export async function GET() {
         };
       })
     );
-    return NextResponse.json({ source: "local", files });
+    if (filterName) {
+      files = files.filter((f) => f.name === filterName);
+    }
+    return NextResponse.json({ source: "local", store, files });
   } catch {
-    return NextResponse.json({ source: "local", files: [] });
+    return NextResponse.json({ source: "local", store, files: [] });
   }
 }
